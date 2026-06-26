@@ -11,15 +11,15 @@ pipeline {
     stages {
         stage('Installation des dépendances') {
             steps {
-                sh 'npm ci'
-                sh 'npx prisma generate'
+                bat 'npm ci'
+                bat 'npx prisma generate'
             }
         }
 
         stage('Tests unitaires') {
             steps {
-                sh 'npx prisma generate --schema=prisma/schema-test.prisma'
-                sh 'npm run test:coverage'
+                bat 'npx prisma generate --schema=prisma/schema-test.prisma'
+                bat 'npm run test:coverage'
             }
             post {
                 always {
@@ -30,7 +30,7 @@ pipeline {
 
         stage('Tests End-to-End') {
             steps {
-                sh 'npm run test:e2e:coverage'
+                bat 'npm run test:e2e:coverage'
             }
             post {
                 always {
@@ -41,11 +41,7 @@ pipeline {
 
         stage('Analyse SonarQube') {
             steps {
-                sh """
-                    sonar-scanner \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.token=${SONAR_TOKEN}
-                """
+                bat "sonar-scanner \"-Dsonar.host.url=%SONAR_HOST_URL%\" \"-Dsonar.token=%SONAR_TOKEN%\""
             }
         }
 
@@ -59,14 +55,14 @@ pipeline {
 
         stage('Build Docker') {
             steps {
-                sh "docker buildx build --tag ${DOCKER_IMAGE}:${BUILD_NUMBER} --tag ${DOCKER_IMAGE}:latest --load ."
+                bat "docker buildx build --tag %DOCKER_IMAGE%:%BUILD_NUMBER% --tag %DOCKER_IMAGE%:latest --load ."
             }
         }
 
         stage('Scan Trivy') {
             steps {
-                sh "trivy image --severity CRITICAL,HIGH --format table --exit-code 1 ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
-                sh "trivy image --severity CRITICAL,HIGH --format json --output trivy-report.json ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                bat "trivy image --severity CRITICAL,HIGH --format table %DOCKER_IMAGE%:%BUILD_NUMBER%"
+                bat "trivy image --severity CRITICAL,HIGH --format json --output trivy-report.json %DOCKER_IMAGE%:%BUILD_NUMBER%"
             }
             post {
                 always {
@@ -77,8 +73,8 @@ pipeline {
 
         stage('Génération SBOM') {
             steps {
-                sh "trivy image --format spdx-json --output sbom-spdx.json ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                sh "trivy image --format cyclonedx --output sbom-cyclonedx.json ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                bat "trivy image --format spdx-json --output sbom-spdx.json %DOCKER_IMAGE%:%BUILD_NUMBER%"
+                bat "trivy image --format cyclonedx --output sbom-cyclonedx.json %DOCKER_IMAGE%:%BUILD_NUMBER%"
             }
             post {
                 always {
@@ -89,15 +85,15 @@ pipeline {
 
         stage('Push DockerHub') {
             steps {
-                sh "echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin"
-                sh "docker buildx build --platform linux/amd64 --tag ${DOCKER_IMAGE}:${BUILD_NUMBER} --tag ${DOCKER_IMAGE}:latest --sbom=true --provenance=true --push ."
+                bat "echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin"
+                bat "docker buildx build --platform linux/amd64 --tag %DOCKER_IMAGE%:%BUILD_NUMBER% --tag %DOCKER_IMAGE%:latest --sbom=true --provenance=true --push ."
             }
         }
     }
 
     post {
         always {
-            sh "docker logout"
+            bat 'docker logout'
             cleanWs()
         }
     }
