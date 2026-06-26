@@ -41,7 +41,7 @@ pipeline {
 
         stage('Analyse SonarQube') {
             steps {
-                bat "sonar-scanner \"-Dsonar.host.url=%SONAR_HOST_URL%\" \"-Dsonar.token=%SONAR_TOKEN%\""
+                bat "\"C:\\Users\\cheim\\AppData\\Roaming\\npm\\sonar-scanner.cmd\" \"-Dsonar.host.url=%SONAR_HOST_URL%\" \"-Dsonar.token=%SONAR_TOKEN%\""
             }
         }
 
